@@ -18,6 +18,11 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Gradle 8.5 Kur
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.5'
+
       - name: Android Proje Dosyalarını Oluştur
         run: |
           mkdir -p app/src/main/java/com/derssaati/app
@@ -26,36 +31,42 @@ jobs:
           mkdir -p app/src/main/res/xml
           mkdir -p app/src/main/res/drawable
 
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+
           # settings.gradle
           cat << 'EOF' > settings.gradle
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
           rootProject.name = "DersSaati"
           include ':app'
           EOF
 
           # build.gradle (Root)
           cat << 'EOF' > build.gradle
-          buildscript {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-              dependencies {
-                  classpath 'com.android.tools.build:gradle:8.2.2'
-                  classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.22'
-              }
-          }
-          allprojects {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
+          plugins {
+              id 'com.android.application' version '8.2.2' apply false
+              id 'org.jetbrains.kotlin.android' version '1.9.22' apply false
           }
           EOF
 
           # app/build.gradle
           cat << 'EOF' > app/build.gradle
-          apply plugin: 'com.android.application'
-          apply plugin: 'kotlin-android'
+          plugins {
+              id 'com.android.application'
+              id 'org.jetbrains.kotlin.android'
+          }
 
           android {
               namespace 'com.derssaati.app'
@@ -273,7 +284,6 @@ jobs:
 
                   val prefs = getSharedPreferences("DersSaatiPrefs", Context.MODE_PRIVATE)
                   
-                  // Varsayılan Şablon
                   val defaultSchedule = 
                       "08:30-09:10-1. Ders\n" +
                       "09:10-09:20-Teneffüs\n" +
@@ -298,7 +308,6 @@ jobs:
 
                       Toast.makeText(this, "Program Kaydedildi!", Toast.LENGTH_SHORT).show()
 
-                      // Widget'ı tetikle
                       val intent = Intent(this, DersWidget::class.java).apply {
                           action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
                           val ids = AppWidgetManager.getInstance(application).getAppWidgetIds(
@@ -393,10 +402,8 @@ jobs:
           }
           EOF
 
-      - name: Gradle Kur ve APK Derle
-        run: |
-          sudo apt-get update && sudo apt-get install -y gradle
-          gradle assembleDebug
+      - name: APK Derle
+        run: gradle assembleDebug
 
       - name: APK Dosyasını Yükle
         uses: actions/upload-artifact@v4
