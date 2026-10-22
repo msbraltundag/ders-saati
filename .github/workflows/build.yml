@@ -42,13 +42,6 @@ jobs:
                   gradlePluginPortal()
               }
           }
-          dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
           rootProject.name = "DersSaati"
           include ':app'
           EOF
@@ -95,9 +88,7 @@ jobs:
           }
 
           dependencies {
-              implementation 'androidx.core:core-ktx:1.12.0'
-              implementation 'androidx.appcompat:appcompat:1.6.1'
-              implementation 'com.google.android.material:material:1.11.0'
+              // Harici kütüphane yok - Tamamen yerel Android SDK
           }
           EOF
 
@@ -105,14 +96,11 @@ jobs:
           cat << 'EOF' > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-              <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-
               <application
                   android:allowBackup="true"
                   android:icon="@android:drawable/ic_menu_recent_history"
                   android:label="Ders Saati"
-                  android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar">
+                  android:theme="@android:style/Theme.Material.Light.NoActionBar">
                   
                   <activity
                       android:name=".MainActivity"
@@ -137,22 +125,23 @@ jobs:
           </manifest>
           EOF
 
-          # XML Layouts & Values
+          # Strings
           cat << 'EOF' > app/src/main/res/values/strings.xml
           <resources>
               <string name="app_name">Ders Saati</string>
           </resources>
           EOF
 
+          # Widget Arka Planı
           cat << 'EOF' > app/src/main/res/drawable/widget_bg.xml
           <?xml version="1.0" encoding="utf-8"?>
           <shape xmlns:android="http://schemas.android.com/apk/res/android">
               <solid android:color="#1E1E2C" />
               <corners android:radius="16dp" />
-              <stroke android:width="2dp" android:color="#3F51B5" />
           </shape>
           EOF
 
+          # Widget XML Tanımı
           cat << 'EOF' > app/src/main/res/xml/widget_info.xml
           <?xml version="1.0" encoding="utf-8"?>
           <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
@@ -163,6 +152,7 @@ jobs:
               android:resizeMode="horizontal|vertical" />
           EOF
 
+          # Widget Layout
           cat << 'EOF' > app/src/main/res/layout/widget_layout.xml
           <?xml version="1.0" encoding="utf-8"?>
           <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -178,28 +168,31 @@ jobs:
                   android:layout_width="wrap_content"
                   android:layout_height="wrap_content"
                   android:text="Ders Saati"
-                  android:textColor="#9E9E9E"
-                  android:textSize="16sp"
+                  android:textColor="#B0BEC5"
+                  android:textSize="18sp"
                   android:textStyle="bold" />
 
               <TextView
                   android:id="@+id/tvCountdown"
                   android:layout_width="wrap_content"
                   android:layout_height="wrap_content"
-                  android:layout_marginTop="4dp"
+                  android:layout_marginTop="6dp"
                   android:text="-- dk kaldı"
                   android:textColor="#00E676"
-                  android:textSize="22sp"
+                  android:textSize="24sp"
                   android:textStyle="bold" />
           </LinearLayout>
           EOF
 
+          # Activity Main Layout
           cat << 'EOF' > app/src/main/res/layout/activity_main.xml
           <?xml version="1.0" encoding="utf-8"?>
           <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
               android:layout_width="match_parent"
               android:layout_height="match_parent"
-              android:padding="20dp">
+              android:padding="20dp"
+              android:background="#F5F5F5">
+              
               <LinearLayout
                   android:layout_width="match_parent"
                   android:layout_height="wrap_content"
@@ -209,20 +202,22 @@ jobs:
                       android:layout_width="wrap_content"
                       android:layout_height="wrap_content"
                       android:text="Ders Saati Ayarları"
-                      android:textSize="24sp"
+                      android:textSize="22sp"
+                      android:textColor="#212121"
                       android:textStyle="bold"
                       android:layout_marginBottom="16dp"/>
 
                   <TextView
                       android:layout_width="wrap_content"
                       android:layout_height="wrap_content"
-                      android:text="Ders ve Teneffüs Saatleri (Manuel Giriş):"
+                      android:text="Ders ve Teneffüs Saatleri:"
+                      android:textColor="#424242"
                       android:textStyle="bold"/>
 
                   <TextView
                       android:layout_width="wrap_content"
                       android:layout_height="wrap_content"
-                      android:text="Format: Başlangıç-Bitiş-DersAdı (Her satıra bir tane)"
+                      android:text="Format: Başlangıç-Bitiş-DersAdı"
                       android:textColor="#757575"
                       android:textSize="12sp"
                       android:layout_marginBottom="8dp"/>
@@ -232,18 +227,19 @@ jobs:
                       android:layout_width="match_parent"
                       android:layout_height="220dp"
                       android:gravity="top|start"
-                      android:background="#E0E0E0"
-                      android:padding="10dp"
+                      android:background="#FFFFFF"
+                      android:padding="12dp"
+                      android:textColor="#212121"
                       android:fontFamily="monospace"
-                      android:textSize="14sp"
-                      android:hint="08:30-09:10-1. Ders\n09:10-09:20-Teneffüs\n09:20-10:00-2. Ders"/>
+                      android:textSize="14sp" />
 
-                  <com.google.android.material.switchmaterial.SwitchMaterial
+                  <Switch
                       android:id="@+id/switchNotification"
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
                       android:layout_marginTop="16dp"
                       android:text="Zil Çalınca Bildirim Gönder"
+                      android:textSize="16sp"
                       android:checked="false"/>
 
                   <Button
@@ -261,6 +257,7 @@ jobs:
           cat << 'EOF' > app/src/main/java/com/derssaati/app/MainActivity.kt
           package com.derssaati.app
 
+          import android.app.Activity
           import android.appwidget.AppWidgetManager
           import android.content.ComponentName
           import android.content.Context
@@ -268,18 +265,17 @@ jobs:
           import android.os.Bundle
           import android.widget.Button
           import android.widget.EditText
+          import android.widget.Switch
           import android.widget.Toast
-          import androidx.appcompat.app.AppCompatActivity
-          import com.google.android.material.switchmaterial.SwitchMaterial
 
-          class MainActivity : AppCompatActivity() {
+          class MainActivity : Activity() {
 
               override fun onCreate(savedInstanceState: Bundle?) {
                   super.onCreate(savedInstanceState)
                   setContentView(R.layout.activity_main)
 
                   val etSchedule = findViewById<EditText>(R.id.etSchedule)
-                  val switchNotification = findViewById<SwitchMaterial>(R.id.switchNotification)
+                  val switchNotification = findViewById<Switch>(R.id.switchNotification)
                   val btnSave = findViewById<Button>(R.id.btnSave)
 
                   val prefs = getSharedPreferences("DersSaatiPrefs", Context.MODE_PRIVATE)
@@ -403,7 +399,7 @@ jobs:
           EOF
 
       - name: APK Derle
-        run: gradle assembleDebug
+        run: gradle assembleDebug --stacktrace
 
       - name: APK Dosyasını Yükle
         uses: actions/upload-artifact@v4
