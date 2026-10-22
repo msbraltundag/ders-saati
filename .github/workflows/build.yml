@@ -73,8 +73,8 @@ jobs:
                   applicationId "com.derssaati.app"
                   minSdk 24
                   targetSdk 34
-                  versionCode 1
-                  versionName "1.0"
+                  versionCode 2
+                  versionName "1.1"
               }
 
               buildTypes {
@@ -108,7 +108,8 @@ jobs:
                   
                   <activity
                       android:name=".MainActivity"
-                      android:exported="true">
+                      android:exported="true"
+                      android:windowSoftInputMode="adjustResize">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
                           <category android:name="android.intent.category.LAUNCHER" />
@@ -136,27 +137,30 @@ jobs:
           </resources>
           EOF
 
-          # Widget Arka Planı
+          # Widget Arka Planı (1x1 için şık yuvarlak kenarlı koyu kutu)
           cat << 'EOF' > app/src/main/res/drawable/widget_bg.xml
           <?xml version="1.0" encoding="utf-8"?>
           <shape xmlns:android="http://schemas.android.com/apk/res/android">
-              <solid android:color="#1E1E2C" />
-              <corners android:radius="16dp" />
+              <solid android:color="#212121" />
+              <corners android:radius="18dp" />
+              <stroke android:width="1.5dp" android:color="#33B5E5" />
           </shape>
           EOF
 
-          # Widget XML Tanımı
+          # Widget XML Tanımı (1x1 hücre boyutu)
           cat << 'EOF' > app/src/main/res/xml/widget_info.xml
           <?xml version="1.0" encoding="utf-8"?>
           <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
-              android:minWidth="140dp"
-              android:minHeight="80dp"
+              android:minWidth="40dp"
+              android:minHeight="40dp"
+              android:targetCellWidth="1"
+              android:targetCellHeight="1"
               android:updatePeriodMillis="60000"
               android:initialLayout="@layout/widget_layout"
               android:resizeMode="horizontal|vertical" />
           EOF
 
-          # Widget Layout
+          # Widget Layout (1x1 kare tasarım)
           cat << 'EOF' > app/src/main/res/layout/widget_layout.xml
           <?xml version="1.0" encoding="utf-8"?>
           <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -165,37 +169,41 @@ jobs:
               android:background="@drawable/widget_bg"
               android:gravity="center"
               android:orientation="vertical"
-              android:padding="12dp">
+              android:padding="4dp">
 
               <TextView
                   android:id="@+id/tvTitle"
                   android:layout_width="wrap_content"
                   android:layout_height="wrap_content"
-                  android:text="Ders Saati"
-                  android:textColor="#B0BEC5"
-                  android:textSize="18sp"
+                  android:gravity="center"
+                  android:maxLines="1"
+                  android:ellipsize="end"
+                  android:text="1. Ders"
+                  android:textColor="#80D8FF"
+                  android:textSize="12sp"
                   android:textStyle="bold" />
 
               <TextView
                   android:id="@+id/tvCountdown"
                   android:layout_width="wrap_content"
                   android:layout_height="wrap_content"
-                  android:layout_marginTop="6dp"
-                  android:text="-- dk kaldı"
+                  android:layout_marginTop="2dp"
+                  android:gravity="center"
+                  android:text="25 dk"
                   android:textColor="#00E676"
-                  android:textSize="24sp"
+                  android:textSize="16sp"
                   android:textStyle="bold" />
           </LinearLayout>
           EOF
 
-          # Activity Main Layout
+          # Activity Main Layout (Gün Seçicili Arayüz)
           cat << 'EOF' > app/src/main/res/layout/activity_main.xml
           <?xml version="1.0" encoding="utf-8"?>
           <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
               android:layout_width="match_parent"
               android:layout_height="match_parent"
-              android:padding="20dp"
-              android:background="#F5F5F5">
+              android:padding="16dp"
+              android:background="#F8F9FA">
               
               <LinearLayout
                   android:layout_width="match_parent"
@@ -209,12 +217,29 @@ jobs:
                       android:textSize="22sp"
                       android:textColor="#212121"
                       android:textStyle="bold"
-                      android:layout_marginBottom="16dp"/>
+                      android:layout_marginBottom="12dp"/>
 
                   <TextView
                       android:layout_width="wrap_content"
                       android:layout_height="wrap_content"
-                      android:text="Ders ve Teneffüs Saatleri:"
+                      android:text="Düzenlenecek Günü Seçin:"
+                      android:textColor="#424242"
+                      android:textStyle="bold"
+                      android:textSize="14sp"/>
+
+                  <Spinner
+                      android:id="@+id/spDays"
+                      android:layout_width="match_parent"
+                      android:layout_height="48dp"
+                      android:layout_marginTop="6dp"
+                      android:background="#E2E8F0"
+                      android:padding="8dp"/>
+
+                  <TextView
+                      android:layout_width="wrap_content"
+                      android:layout_height="wrap_content"
+                      android:layout_marginTop="12dp"
+                      android:text="O Güne Ait Ders Saatleri:"
                       android:textColor="#424242"
                       android:textStyle="bold"/>
 
@@ -224,34 +249,42 @@ jobs:
                       android:text="Format: Başlangıç-Bitiş-DersAdı"
                       android:textColor="#757575"
                       android:textSize="12sp"
-                      android:layout_marginBottom="8dp"/>
+                      android:layout_marginBottom="6dp"/>
 
                   <EditText
                       android:id="@+id/etSchedule"
                       android:layout_width="match_parent"
-                      android:layout_height="220dp"
+                      android:layout_height="180dp"
                       android:gravity="top|start"
                       android:background="#FFFFFF"
-                      android:padding="12dp"
+                      android:padding="10dp"
                       android:textColor="#212121"
                       android:fontFamily="monospace"
-                      android:textSize="14sp" />
+                      android:textSize="13sp" />
+
+                  <Button
+                      android:id="@+id/btnCopyToAll"
+                      android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      android:layout_marginTop="8dp"
+                      android:text="Bu Saatleri Tüm Hafta İçi Günlerine Kopyala"
+                      android:textSize="11sp"/>
 
                   <Switch
                       android:id="@+id/switchNotification"
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
-                      android:layout_marginTop="16dp"
-                      android:text="Zil Çalınca Bildirim Gönder"
-                      android:textSize="16sp"
+                      android:layout_marginTop="12dp"
+                      android:text="Zil Bildirimleri"
+                      android:textSize="15sp"
                       android:checked="false"/>
 
                   <Button
                       android:id="@+id/btnSave"
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
-                      android:layout_marginTop="20dp"
-                      android:text="Kaydet ve Widget'ı Güncelle"
+                      android:layout_marginTop="16dp"
+                      android:text="Seçili Günü Kaydet ve Widget'ı Güncelle"
                       android:padding="12dp"/>
               </LinearLayout>
           </ScrollView>
@@ -267,47 +300,99 @@ jobs:
           import android.content.Context
           import android.content.Intent
           import android.os.Bundle
-          import android.widget.Button
-          import android.widget.EditText
-          import android.widget.Switch
-          import android.widget.Toast
+          import android.view.View
+          import android.widget.*
+          import java.util.Calendar
 
           class MainActivity : Activity() {
+
+              private val days = arrayOf("Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar")
+              // Calendar karşılıkları: MONDAY(2), TUESDAY(3), WEDNESDAY(4), THURSDAY(5), FRIDAY(6), SATURDAY(7), SUNDAY(1)
+              private val dayCalendarCodes = intArrayOf(
+                  Calendar.MONDAY,
+                  Calendar.TUESDAY,
+                  Calendar.WEDNESDAY,
+                  Calendar.THURSDAY,
+                  Calendar.FRIDAY,
+                  Calendar.SATURDAY,
+                  Calendar.SUNDAY
+              )
+
+              private var currentSelectedDayIndex = 0
+
+              private val defaultSchedule = 
+                  "08:30-09:10-1. Ders\n" +
+                  "09:10-09:20-Teneffüs\n" +
+                  "09:20-10:00-2. Ders\n" +
+                  "10:00-10:10-Teneffüs\n" +
+                  "10:10-10:50-3. Ders\n" +
+                  "10:50-11:00-Teneffüs\n" +
+                  "11:00-11:40-4. Ders\n" +
+                  "11:40-12:30-Öğle Arası\n" +
+                  "12:30-13:10-5. Ders\n" +
+                  "13:10-13:20-Teneffüs\n" +
+                  "13:20-14:00-6. Ders"
 
               override fun onCreate(savedInstanceState: Bundle?) {
                   super.onCreate(savedInstanceState)
                   setContentView(R.layout.activity_main)
 
+                  val spDays = findViewById<Spinner>(R.id.spDays)
                   val etSchedule = findViewById<EditText>(R.id.etSchedule)
                   val switchNotification = findViewById<Switch>(R.id.switchNotification)
                   val btnSave = findViewById<Button>(R.id.btnSave)
+                  val btnCopyToAll = findViewById<Button>(R.id.btnCopyToAll)
 
                   val prefs = getSharedPreferences("DersSaatiPrefs", Context.MODE_PRIVATE)
-                  
-                  val defaultSchedule = 
-                      "08:30-09:10-1. Ders\n" +
-                      "09:10-09:20-Teneffüs\n" +
-                      "09:20-10:00-2. Ders\n" +
-                      "10:00-10:10-Teneffüs\n" +
-                      "10:10-10:50-3. Ders\n" +
-                      "10:50-11:00-Teneffüs\n" +
-                      "11:00-11:40-4. Ders\n" +
-                      "11:40-12:30-Öğle Arası\n" +
-                      "12:30-13:10-5. Ders\n" +
-                      "13:10-13:20-Teneffüs\n" +
-                      "13:20-14:00-6. Ders"
 
-                  etSchedule.setText(prefs.getString("schedule_data", defaultSchedule))
+                  val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, days)
+                  spDays.adapter = adapter
+
+                  // Gün seçildiğinde o günün saatlerini yükle
+                  spDays.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                      override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                          currentSelectedDayIndex = position
+                          val dayCode = dayCalendarCodes[position]
+                          val savedDayData = prefs.getString("schedule_day_$dayCode", null)
+                          if (savedDayData != null) {
+                              etSchedule.setText(savedDayData)
+                          } else {
+                              // Hafta sonu boş, hafta içi varsayılan şablon
+                              if (dayCode == Calendar.SATURDAY || dayCode == Calendar.SUNDAY) {
+                                  etSchedule.setText("")
+                              } else {
+                                  etSchedule.setText(defaultSchedule)
+                              }
+                          }
+                      }
+                      override fun onNothingSelected(parent: AdapterView<*>?) {}
+                  }
+
                   switchNotification.isChecked = prefs.getBoolean("notifications_enabled", false)
 
+                  // Tüm hafta içine kopyala
+                  btnCopyToAll.setOnClickListener {
+                      val currentText = etSchedule.text.toString()
+                      val editor = prefs.edit()
+                      val weekdays = intArrayOf(Calendar.MONDAY, Calendar.TUESDAY, Calendar.WEDNESDAY, Calendar.THURSDAY, Calendar.FRIDAY)
+                      for (w in weekdays) {
+                          editor.putString("schedule_day_$w", currentText)
+                      }
+                      editor.apply()
+                      Toast.makeText(this, "Bu saatler Pzt-Cuma arasına kopyalandı!", Toast.LENGTH_SHORT).show()
+                  }
+
+                  // Kaydet ve Widget'ı Yenile
                   btnSave.setOnClickListener {
+                      val dayCode = dayCalendarCodes[currentSelectedDayIndex]
                       prefs.edit()
-                          .putString("schedule_data", etSchedule.text.toString())
+                          .putString("schedule_day_$dayCode", etSchedule.text.toString())
                           .putBoolean("notifications_enabled", switchNotification.isChecked)
                           .apply()
 
-                      Toast.makeText(this, "Program Kaydedildi!", Toast.LENGTH_SHORT).show()
+                      Toast.makeText(this, "${days[currentSelectedDayIndex]} programı kaydedildi!", Toast.LENGTH_SHORT).show()
 
+                      // Widget'ı güncelle
                       val intent = Intent(this, DersWidget::class.java).apply {
                           action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
                           val ids = AppWidgetManager.getInstance(application).getAppWidgetIds(
@@ -321,7 +406,7 @@ jobs:
           }
           EOF
 
-          # DersWidget.kt
+          # DersWidget.kt (Güne duyarlı 1x1 Widget Motoru)
           cat << 'EOF' > app/src/main/java/com/derssaati/app/DersWidget.kt
           package com.derssaati.app
 
@@ -343,48 +428,59 @@ jobs:
                   fun updateWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
                       val views = RemoteViews(context.packageName, R.layout.widget_layout)
                       val prefs = context.getSharedPreferences("DersSaatiPrefs", Context.MODE_PRIVATE)
-                      val rawData = prefs.getString("schedule_data", "") ?: ""
 
                       val cal = Calendar.getInstance()
+                      val todayCode = cal.get(Calendar.DAY_OF_WEEK)
                       val nowMin = cal.get(Calendar.HOUR_OF_DAY) * 60 + cal.get(Calendar.MINUTE)
 
-                      var status = "Dersler Bitti"
+                      // Bugünün programını çek
+                      val rawData = prefs.getString("schedule_day_$todayCode", "") ?: ""
+
+                      var status = "Ders Yok"
                       var countdown = "--"
 
-                      val lines = rawData.split("\n")
-                      var found = false
+                      if (rawData.isNotBlank()) {
+                          val lines = rawData.split("\n")
+                          var found = false
 
-                      for (line in lines) {
-                          val parts = line.trim().split("-")
-                          if (parts.size >= 3) {
-                              val startMin = timeToMin(parts[0])
-                              val endMin = timeToMin(parts[1])
-                              val title = parts[2]
-
-                              if (nowMin in startMin until endMin) {
-                                  status = title
-                                  val rem = endMin - nowMin
-                                  countdown = "$rem dk kaldı"
-                                  found = true
-                                  break
-                              }
-                          }
-                      }
-
-                      if (!found) {
+                          // 1. Şu an ders veya teneffüs içinde miyiz?
                           for (line in lines) {
                               val parts = line.trim().split("-")
                               if (parts.size >= 3) {
                                   val startMin = timeToMin(parts[0])
-                                  if (startMin > nowMin) {
-                                      status = "Sıradaki: " + parts[2]
-                                      val rem = startMin - nowMin
-                                      countdown = "$rem dk kaldı"
+                                  val endMin = timeToMin(parts[1])
+                                  val title = parts[2]
+
+                                  if (nowMin in startMin until endMin) {
+                                      status = title
+                                      val rem = endMin - nowMin
+                                      countdown = "$rem dk"
                                       found = true
                                       break
                                   }
                               }
                           }
+
+                          // 2. Henüz başlamamış bir sonraki zili ara
+                          if (!found) {
+                              status = "Bitti"
+                              for (line in lines) {
+                                  val parts = line.trim().split("-")
+                                  if (parts.size >= 3) {
+                                      val startMin = timeToMin(parts[0])
+                                      if (startMin > nowMin) {
+                                          status = parts[2]
+                                          val rem = startMin - nowMin
+                                          countdown = "$rem dk"
+                                          found = true
+                                          break
+                                      }
+                                  }
+                              }
+                          }
+                      } else {
+                          status = "Tatil"
+                          countdown = "Zil Yok"
                       }
 
                       views.setTextViewText(R.id.tvTitle, status)
@@ -403,7 +499,7 @@ jobs:
           EOF
 
       - name: APK Derle
-        run: gradle assembleDebug --stacktrace
+        run: gradle assembleDebug
 
       - name: APK Dosyasını Yükle
         uses: actions/upload-artifact@v4
