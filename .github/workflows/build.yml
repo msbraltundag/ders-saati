@@ -73,8 +73,8 @@ jobs:
                   applicationId "com.derssaati.app"
                   minSdk 24
                   targetSdk 34
-                  versionCode 2
-                  versionName "1.1"
+                  versionCode 3
+                  versionName "1.2"
               }
 
               buildTypes {
@@ -96,10 +96,13 @@ jobs:
           }
           EOF
 
-          # Manifest
+          # Manifest (Uyanma ve kilit açılış izinleri eklendi)
           cat << 'EOF' > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+              <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+
               <application
                   android:allowBackup="true"
                   android:icon="@android:drawable/ic_menu_recent_history"
@@ -121,6 +124,9 @@ jobs:
                       android:exported="true">
                       <intent-filter>
                           <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                          <action android:name="com.derssaati.app.ACTION_AUTO_UPDATE" />
+                          <action android:name="android.intent.action.BOOT_COMPLETED" />
+                          <action android:name="android.intent.action.USER_PRESENT" />
                       </intent-filter>
                       <meta-data
                           android:name="android.appwidget.provider"
@@ -137,7 +143,7 @@ jobs:
           </resources>
           EOF
 
-          # Widget Arka Planı (1x1 için şık yuvarlak kenarlı koyu kutu)
+          # Widget Arka Planı
           cat << 'EOF' > app/src/main/res/drawable/widget_bg.xml
           <?xml version="1.0" encoding="utf-8"?>
           <shape xmlns:android="http://schemas.android.com/apk/res/android">
@@ -147,7 +153,7 @@ jobs:
           </shape>
           EOF
 
-          # Widget XML Tanımı (1x1 hücre boyutu)
+          # Widget XML Tanımı
           cat << 'EOF' > app/src/main/res/xml/widget_info.xml
           <?xml version="1.0" encoding="utf-8"?>
           <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
@@ -155,15 +161,16 @@ jobs:
               android:minHeight="40dp"
               android:targetCellWidth="1"
               android:targetCellHeight="1"
-              android:updatePeriodMillis="60000"
+              android:updatePeriodMillis="0"
               android:initialLayout="@layout/widget_layout"
               android:resizeMode="horizontal|vertical" />
           EOF
 
-          # Widget Layout (1x1 kare tasarım)
+          # Widget Layout (Dokunma kimliği eklendi)
           cat << 'EOF' > app/src/main/res/layout/widget_layout.xml
           <?xml version="1.0" encoding="utf-8"?>
           <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:id="@+id/widgetRoot"
               android:layout_width="match_parent"
               android:layout_height="match_parent"
               android:background="@drawable/widget_bg"
@@ -189,14 +196,14 @@ jobs:
                   android:layout_height="wrap_content"
                   android:layout_marginTop="2dp"
                   android:gravity="center"
-                  android:text="25 dk"
+                  android:text="-- dk"
                   android:textColor="#00E676"
                   android:textSize="16sp"
                   android:textStyle="bold" />
           </LinearLayout>
           EOF
 
-          # Activity Main Layout (Gün Seçicili Arayüz)
+          # Activity Main Layout
           cat << 'EOF' > app/src/main/res/layout/activity_main.xml
           <?xml version="1.0" encoding="utf-8"?>
           <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
@@ -284,7 +291,7 @@ jobs:
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
                       android:layout_marginTop="16dp"
-                      android:text="Seçili Günü Kaydet ve Widget'ı Güncelle"
+                      android:text="Seçili Günü Kaydet ve Canlı Başlat"
                       android:padding="12dp"/>
               </LinearLayout>
           </ScrollView>
@@ -295,10 +302,7 @@ jobs:
           package com.derssaati.app
 
           import android.app.Activity
-          import android.appwidget.AppWidgetManager
-          import android.content.ComponentName
           import android.content.Context
-          import android.content.Intent
           import android.os.Bundle
           import android.view.View
           import android.widget.*
@@ -307,7 +311,6 @@ jobs:
           class MainActivity : Activity() {
 
               private val days = arrayOf("Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar")
-              // Calendar karşılıkları: MONDAY(2), TUESDAY(3), WEDNESDAY(4), THURSDAY(5), FRIDAY(6), SATURDAY(7), SUNDAY(1)
               private val dayCalendarCodes = intArrayOf(
                   Calendar.MONDAY,
                   Calendar.TUESDAY,
@@ -348,7 +351,6 @@ jobs:
                   val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, days)
                   spDays.adapter = adapter
 
-                  // Gün seçildiğinde o günün saatlerini yükle
                   spDays.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
                       override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                           currentSelectedDayIndex = position
@@ -357,7 +359,6 @@ jobs:
                           if (savedDayData != null) {
                               etSchedule.setText(savedDayData)
                           } else {
-                              // Hafta sonu boş, hafta içi varsayılan şablon
                               if (dayCode == Calendar.SATURDAY || dayCode == Calendar.SUNDAY) {
                                   etSchedule.setText("")
                               } else {
@@ -370,7 +371,6 @@ jobs:
 
                   switchNotification.isChecked = prefs.getBoolean("notifications_enabled", false)
 
-                  // Tüm hafta içine kopyala
                   btnCopyToAll.setOnClickListener {
                       val currentText = etSchedule.text.toString()
                       val editor = prefs.edit()
@@ -382,7 +382,6 @@ jobs:
                       Toast.makeText(this, "Bu saatler Pzt-Cuma arasına kopyalandı!", Toast.LENGTH_SHORT).show()
                   }
 
-                  // Kaydet ve Widget'ı Yenile
                   btnSave.setOnClickListener {
                       val dayCode = dayCalendarCodes[currentSelectedDayIndex]
                       prefs.edit()
@@ -392,39 +391,73 @@ jobs:
 
                       Toast.makeText(this, "${days[currentSelectedDayIndex]} programı kaydedildi!", Toast.LENGTH_SHORT).show()
 
-                      // Widget'ı güncelle
-                      val intent = Intent(this, DersWidget::class.java).apply {
-                          action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-                          val ids = AppWidgetManager.getInstance(application).getAppWidgetIds(
-                              ComponentName(application, DersWidget::class.java)
-                          )
-                          putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
-                      }
-                      sendBroadcast(intent)
+                      // Canlı döngüyü hemen tetikle
+                      DersWidget.updateAllWidgets(this)
                   }
               }
           }
           EOF
 
-          # DersWidget.kt (Güne duyarlı 1x1 Widget Motoru)
+          # DersWidget.kt (Saniyeli Canlı Döngü ve Tıklanabilir Motor)
           cat << 'EOF' > app/src/main/java/com/derssaati/app/DersWidget.kt
           package com.derssaati.app
 
+          import android.app.AlarmManager
+          import android.app.PendingIntent
           import android.appwidget.AppWidgetManager
           import android.appwidget.AppWidgetProvider
+          import android.content.ComponentName
           import android.content.Context
+          import android.content.Intent
+          import android.os.Build
           import android.widget.RemoteViews
           import java.util.Calendar
 
           class DersWidget : AppWidgetProvider() {
 
-              override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
-                  for (appWidgetId in appWidgetIds) {
-                      updateWidget(context, appWidgetManager, appWidgetId)
-                  }
-              }
-
               companion object {
+                  const val ACTION_AUTO_UPDATE = "com.derssaati.app.ACTION_AUTO_UPDATE"
+
+                  fun updateAllWidgets(context: Context) {
+                      val appWidgetManager = AppWidgetManager.getInstance(context)
+                      val thisWidget = ComponentName(context, DersWidget::class.java)
+                      val appWidgetIds = appWidgetManager.getAppWidgetIds(thisWidget)
+                      for (id in appWidgetIds) {
+                          updateWidget(context, appWidgetManager, id)
+                      }
+                      scheduleNextMinute(context)
+                  }
+
+                  private fun scheduleNextMinute(context: Context) {
+                      val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
+                      val intent = Intent(context, DersWidget::class.java).apply {
+                          action = ACTION_AUTO_UPDATE
+                      }
+                      val pendingIntent = PendingIntent.getBroadcast(
+                          context, 0, intent,
+                          PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                      )
+
+                      // Bir sonraki tam 00. saniyeyi hedefle
+                      val nextMinute = Calendar.getInstance().apply {
+                          add(Calendar.MINUTE, 1)
+                          set(Calendar.SECOND, 0)
+                          set(Calendar.MILLISECOND, 0)
+                      }.timeInMillis
+
+                      try {
+                          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                              alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, nextMinute, pendingIntent)
+                          } else {
+                              alarmManager.setExact(AlarmManager.RTC_WAKEUP, nextMinute, pendingIntent)
+                          }
+                      } catch (e: Exception) {
+                          try {
+                              alarmManager.set(AlarmManager.RTC_WAKEUP, nextMinute, pendingIntent)
+                          } catch (ex: Exception) { }
+                      }
+                  }
+
                   fun updateWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
                       val views = RemoteViews(context.packageName, R.layout.widget_layout)
                       val prefs = context.getSharedPreferences("DersSaatiPrefs", Context.MODE_PRIVATE)
@@ -433,7 +466,6 @@ jobs:
                       val todayCode = cal.get(Calendar.DAY_OF_WEEK)
                       val nowMin = cal.get(Calendar.HOUR_OF_DAY) * 60 + cal.get(Calendar.MINUTE)
 
-                      // Bugünün programını çek
                       val rawData = prefs.getString("schedule_day_$todayCode", "") ?: ""
 
                       var status = "Ders Yok"
@@ -443,7 +475,6 @@ jobs:
                           val lines = rawData.split("\n")
                           var found = false
 
-                          // 1. Şu an ders veya teneffüs içinde miyiz?
                           for (line in lines) {
                               val parts = line.trim().split("-")
                               if (parts.size >= 3) {
@@ -461,7 +492,6 @@ jobs:
                               }
                           }
 
-                          // 2. Henüz başlamamış bir sonraki zili ara
                           if (!found) {
                               status = "Bitti"
                               for (line in lines) {
@@ -485,6 +515,17 @@ jobs:
 
                       views.setTextViewText(R.id.tvTitle, status)
                       views.setTextViewText(R.id.tvCountdown, countdown)
+
+                      // Widget'a tıklanınca anında tazeleme
+                      val clickIntent = Intent(context, DersWidget::class.java).apply {
+                          action = ACTION_AUTO_UPDATE
+                      }
+                      val clickPendingIntent = PendingIntent.getBroadcast(
+                          context, appWidgetId, clickIntent,
+                          PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                      )
+                      views.setOnClickPendingIntent(R.id.widgetRoot, clickPendingIntent)
+
                       appWidgetManager.updateAppWidget(appWidgetId, views)
                   }
 
@@ -494,6 +535,37 @@ jobs:
                           p[0].toInt() * 60 + p[1].toInt()
                       } catch (e: Exception) { 0 }
                   }
+              }
+
+              override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
+                  updateAllWidgets(context)
+              }
+
+              override fun onReceive(context: Context, intent: Intent) {
+                  super.onReceive(context, intent)
+                  if (intent.action == ACTION_AUTO_UPDATE || 
+                      intent.action == Intent.ACTION_USER_PRESENT || 
+                      intent.action == Intent.ACTION_BOOT_COMPLETED) {
+                      updateAllWidgets(context)
+                  }
+              }
+
+              override fun onEnabled(context: Context) {
+                  super.onEnabled(context)
+                  updateAllWidgets(context)
+              }
+
+              override fun onDisabled(context: Context) {
+                  super.onDisabled(context)
+                  val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager
+                  val intent = Intent(context, DersWidget::class.java).apply {
+                      action = ACTION_AUTO_UPDATE
+                  }
+                  val pendingIntent = PendingIntent.getBroadcast(
+                      context, 0, intent,
+                      PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                  )
+                  alarmManager?.cancel(pendingIntent)
               }
           }
           EOF
